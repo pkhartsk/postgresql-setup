@@ -66,9 +66,6 @@ rlJournalStart
     # TODO: remove if functionality added to the script
     rlRun "/usr/lib64/pgsql/postgresql-17/bin/pg_checksums -e /var/lib/pgsql/data" 0 "Enabling data checksums for pg18"
 
-    rlRun "su - postgres -c '/usr/lib64/pgsql/postgresql-17/bin/pg_ctl -D /var/lib/pgsql/data -l /var/lib/pgsql/logfile start'" 0 "Starting postgres pre-upgrade"
-    rlRun "su - postgres -c '/usr/lib64/pgsql/postgresql-17/bin/pg_ctl -D /var/lib/pgsql/data status'" 0 "Verifying postgres is running"
-
     rlRun "./bin/postgresql-setup --upgrade --debug" 0 "Running upgrade"
     cat /var/lib/pgsql/upgrade_postgresql.log
     cat /var/lib/pgsql/data/log/*
