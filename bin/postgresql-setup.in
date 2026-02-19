@@ -285,10 +285,12 @@ detect_old_cluster_locale()
     # Use appropriate connection method
     local psql_exit_code=0
     if $temp_server_started; then
+        psql -t -A -h "$temp_sockdir" -p "$query_port" -d template1 -c "$query"
         result=$(psql -t -A -h "$temp_sockdir" -p "$query_port" -d template1 -c "$query" 2>/dev/null)
         psql_exit_code=$?
     else
-        result=$(psql -t -A -p "$query_port" -d template1 -c "$query" 2>/dev/null)
+        psql -t -A -h /tmp -p "$query_port" -d template1 -c "$query"
+        result=$(psql -t -A -h /tmp -p "$query_port" -d template1 -c "$query" 2>/dev/null)
         psql_exit_code=$?
     fi
     
