@@ -15,5 +15,5 @@ framework: beakerlib
 contact: pkhartsk@redhat.com
 tag:
   - fedora-upgrade
-test: ./locale.sh
+test: ./jplocale.sh
 
