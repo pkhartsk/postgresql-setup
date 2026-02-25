@@ -260,7 +260,7 @@ detect_old_cluster_locale()
 
     
     # Query locale from template1 database
-    local query="SELECT datcollate, datctype FROM pg_catalog.pg_database WHERE datname = 'template1'"
+    local query="SELECT datcollate, datctype FROM pg_catalog.pg_database WHERE datname = 'template1'; SHOW lc_time ;"
     local result
     local query_port="$temp_port"
 
@@ -277,19 +277,20 @@ detect_old_cluster_locale()
     # Parse result
     if [ $psql_exit_code -eq 0 ] && [ -n "$result" ]; then
         # Parse result: datcollate|datctype
-        old_cluster_lc_collate=$(echo "$result" | cut -d'|' -f1 | tr -d ' ')
-        old_cluster_lc_ctype=$(echo "$result" | cut -d'|' -f2 | tr -d ' ')
+        old_cluster_lc_collate=$(echo "$result" | head -1 | cut -d'|' -f1 | tr -d ' ')
+        old_cluster_lc_ctype=$(echo "$result" | head -1 | cut -d'|' -f2 | tr -d ' ')
         old_cluster_locale="$old_cluster_lc_collate"
+        old_cluster_lc_time=$(echo "$result" | tail -1)
         
         if [ -n "$old_cluster_lc_collate" ] && [ -n "$old_cluster_lc_ctype" ]; then
-            debug "detected locale from old cluster: collate=$old_cluster_lc_collate, ctype=$old_cluster_lc_ctype"
+            debug "detected locale from old cluster: collate=$old_cluster_lc_collate, ctype=$old_cluster_lc_ctype, time=$old_cluster_lc_time"
             return 0
         fi
     fi
     
     # If we couldn't detect it, return failure
     warn $"Could not automatically detect locale settings from old cluster."
-    warn_q $"You may need to set PGSETUP_INITDB_OPTIONS manually with --lc-collate, --lc-ctype, and --locale options."
+    warn_q $"You may need to set PGSETUP_INITDB_OPTIONS manually with --lc-collate, --lc-ctype, --lc-time, and --locale options."
     return 1
 }
 
@@ -360,7 +361,9 @@ upgrade()
     # This addresses Bug 1152556: detect --locale from old datadir automatically
     local locale_already_set=false
     if [ -n "$PGSETUP_INITDB_OPTIONS" ]; then
-        if echo "$PGSETUP_INITDB_OPTIONS" | grep -qE -- "--lc-collate|--lc-ctype|--locale"; then
+        if echo "$PGSETUP_INITDB_OPTIONS" | grep -qE -- "--lc-collate|--lc-ctype|--locale|--lc-time"; then
+            warn "you have set one of the following options: --lc-collate|--lc-ctype|--locale|--lc-time"
+            warn_q "not reading any of these from the current setup, make sure everything's correct yourself"
             locale_already_set=true
         fi
     fi
@@ -369,7 +372,7 @@ upgrade()
         debug "attempting to auto-detect locale from old cluster"
         if detect_old_cluster_locale "$pgdataold" "$upgradefrom_engine" "$PGPORT"; then
             # Build initdb options with detected locale
-            local detected_opts="--lc-collate=$old_cluster_lc_collate --lc-ctype=$old_cluster_lc_ctype"
+            local detected_opts="--lc-collate=$old_cluster_lc_collate --lc-ctype=$old_cluster_lc_ctype --lc-time=$old_cluster_lc_time"
             if [ -n "$old_cluster_locale" ]; then
                 detected_opts="$detected_opts --locale=$old_cluster_locale"
             fi
